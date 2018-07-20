@@ -3,7 +3,7 @@ import { Channel } from './channels';
 import { Server } from './server';
 import { HttpApi } from './api';
 import { Log } from './log';
-
+import * as fs from 'fs';
 const packageFile = require('../package.json');
 
 /**
