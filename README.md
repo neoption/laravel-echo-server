@@ -1,4 +1,4 @@
-# Laravel Echo Server
+﻿# Laravel Echo Server
 
 NodeJs server for Laravel Echo broadcasting with Socket.io.
 
@@ -73,6 +73,7 @@ Edit the default configuration of the server by adding options to your **laravel
 | Title              | Default              | Description                 |
 | :------------------| :------------------- | :---------------------------|
 | `authEndpoint`     | `/broadcasting/auth` | The route that authenticates private channels  |
+| `eventEndpoint`    | `/broadcasting/event`| The route that push connect event  |
 | `authHost`         | `http://localhost`   | The host of the server that authenticates private and presence channels  |
 | `database`         | `redis`              | Database used to store data that should persist, like presence channel members. Options are currently `redis` and `sqlite` |
 | `databaseConfig`   |  `{}`                | Configurations for the different database drivers [Example](#database) |

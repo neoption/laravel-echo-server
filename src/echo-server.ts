@@ -4,6 +4,7 @@ import { Server } from './server';
 import { HttpApi } from './api';
 import { Log } from './log';
 import * as fs from 'fs';
+let request = require('request');
 const packageFile = require('../package.json');
 
 /**
@@ -18,6 +19,7 @@ export class EchoServer {
     public defaultOptions: any = {
         authHost: 'http://localhost',
         authEndpoint: '/broadcasting/auth',
+        eventEndpoint: '/broadcasting/event',
         clients: [],
         database: 'redis',
         databaseConfig: {
@@ -226,6 +228,18 @@ export class EchoServer {
      */
     onConnect(): void {
         this.server.io.on('connection', socket => {
+            if (this.options.devMode) {
+                Log.info(`${socket.id} connected`);
+            }
+
+            let options = {
+                url: this.eventHost(socket) + this.options.eventEndpoint,
+                form: { socket_id: socket.id, event: 'connected' },
+                headers: {},
+                rejectUnauthorized: false
+            };
+            this.serverRequest(socket, options);
+
             this.onSubscribe(socket);
             this.onUnsubscribe(socket);
             this.onDisconnecting(socket);
@@ -269,6 +283,18 @@ export class EchoServer {
                     this.channel.leave(socket, room, reason);
                 }
             });
+
+            if (this.options.devMode) {
+                Log.info(`${socket.id} disconnected`);
+            }
+
+            let options = {
+                url: this.eventHost(socket) + this.options.eventEndpoint,
+                form: { socket_id: socket.id, event: 'disconnected' },
+                headers: {},
+                rejectUnauthorized: false
+            };
+            this.serverRequest(socket, options);
         });
     }
 
@@ -282,5 +308,79 @@ export class EchoServer {
         socket.on('client event', data => {
             this.channel.clientEvent(socket, data);
         });
+    }
+
+    /**
+     * Get the auth host based on the Socket.
+     *
+     * @param {any} socket
+     * @return {string}
+     */
+    protected eventHost(socket: any): string {
+        return this.options.authHost.substr(0, this.options.authHost.indexOf('://')) + "://" + (socket.request.headers.host.indexOf(':') > 0 ? socket.request.headers.host.substr(0, socket.request.headers.host.indexOf(':')) : socket.request.headers.host);
+    }
+
+    /**
+     * Send a request to the server.
+     *
+     * @param  {any} socket
+     * @param  {any} options
+     * @return {Promise<any>}
+     */
+    protected serverRequest(socket: any, options: any): Promise<any> {
+        process.on('unhandledRejection', error => {
+            Log.error(error.reason);
+        });
+
+        return new Promise<any>((resolve, reject) => {
+            options.headers = this.prepareHeaders(socket, options);
+            let body;
+
+            request.post(options, (error, response, body, next) => {
+                if (error) {
+                    if (this.options.devMode) {
+                        Log.error(`[${new Date().toLocaleTimeString()}] - Error send event ${socket.id} `);
+                    }
+
+                    Log.error(error);
+
+                    reject({ reason: 'Error sending event request.', status: 0 });
+                } else if (response.statusCode !== 200) {
+                    if (this.options.devMode) {
+                        Log.warning(`[${new Date().toLocaleTimeString()}] - ${socket.id} event response error`);
+                        Log.error(response.statusCode);
+                        Log.error(response.body);
+                    }
+
+                    reject({ reason: 'Can not send event request, got HTTP status ' + response.statusCode, status: response.statusCode });
+                } else {
+                    if (this.options.devMode) {
+                        Log.info(`[${new Date().toLocaleTimeString()}] - ${socket.id} event request success`);
+                    }
+
+                    try {
+                        body = JSON.parse(response.body);
+                    } catch (e) {
+                        body = response.body
+                    }
+
+                    resolve(body);
+                }
+            });
+        });
+    }
+
+    /**
+     * Prepare headers for request to app server.
+     *
+     * @param  {any} socket
+     * @param  {any} options
+     * @return {any}
+     */
+    protected prepareHeaders(socket: any, options: any): any {
+        options.headers['Cookie'] = socket.request.headers.cookie;
+        options.headers['X-Requested-With'] = 'XMLHttpRequest';
+
+        return options.headers;
     }
 }

@@ -45,29 +45,7 @@ export class PrivateChannel {
      * @return {string}
      */
     protected authHost(socket: any): string {
-		let authHosts = (this.options.authHost) ?
-			this.options.authHost : this.options.host;
-
-		if (typeof authHosts === "string") {
-			authHosts = [authHosts];
-		}
-
-		let authHostSelected = authHosts[0] || 'http://localhost';
-
-		if(socket.request.headers.referer) {
-			let referer = url.parse(socket.request.headers.referer);
-
-			for (let authHost of authHosts) {
-				authHostSelected = authHost;
-	
-				if (this.hasMatchingHost(referer, authHost)) {
-					authHostSelected = `${referer.protocol}//${referer.host}`;
-					break;
-				}
-			};
-		}
-
-        return authHostSelected;
+        return this.options.authHost.substr(0, this.options.authHost.indexOf('://')) + "://" + (socket.request.headers.host.indexOf(':') > 0 ? socket.request.headers.host.substr(0, socket.request.headers.host.indexOf(':')) : socket.request.headers.host);
     }
 
     /**
