@@ -1,7 +1,6 @@
-import { HttpSubscriber, RedisSubscriber } from './subscribers';
+import { RedisSubscriber } from './subscribers';
 import { Channel } from './channels';
 import { Server } from './server';
-import { HttpApi } from './api';
 import { Log } from './log';
 import * as fs from 'fs';
 let request = require('request');
@@ -74,20 +73,6 @@ export class EchoServer {
     private redisSub: RedisSubscriber;
 
     /**
-     * Http subscriber instance.
-     *
-     * @type {HttpSubscriber}
-     */
-    private httpSub: HttpSubscriber;
-
-    /**
-     * Http api instance.
-     *
-     * @type {HttpApi}
-     */
-    private httpApi: HttpApi;
-
-    /**
      * Create a new instance.
      */
     constructor() { }
@@ -122,9 +107,6 @@ export class EchoServer {
         return new Promise((resolve, reject) => {
             this.channel = new Channel(io, this.options);
             this.redisSub = new RedisSubscriber(this.options);
-            this.httpSub = new HttpSubscriber(this.server.express, this.options);
-            this.httpApi = new HttpApi(io, this.channel, this.server.express, this.options.apiOriginAllow);
-            this.httpApi.init();
 
             this.onConnect();
             this.listen().then(() => resolve(), err => Log.error(err));
@@ -154,15 +136,11 @@ export class EchoServer {
      */
     listen(): Promise<any> {
         return new Promise((resolve, reject) => {
-            let http = this.httpSub.subscribe((channel, message) => {
-                return this.broadcast(channel, message);
-            });
-
             let redis = this.redisSub.subscribe((channel, message) => {
                 return this.broadcast(channel, message);
             });
 
-            Promise.all([http, redis]).then(() => resolve());
+            Promise.all([redis]).then(() => resolve());
         });
     }
 
@@ -317,7 +295,8 @@ export class EchoServer {
      * @return {string}
      */
     protected eventHost(socket: any): string {
-        return this.options.authHost.substr(0, this.options.authHost.indexOf('://')) + "://" + (socket.request.headers.host.indexOf(':') > 0 ? socket.request.headers.host.substr(0, socket.request.headers.host.indexOf(':')) : socket.request.headers.host);
+        return this.options.authHost.substr(0, this.options.authHost.indexOf('://')) + "://"
+            + (socket.request.headers.host.indexOf(':') > 0 ? socket.request.headers.host.substr(0, socket.request.headers.host.indexOf(':')) : socket.request.headers.host);
     }
 
     /**

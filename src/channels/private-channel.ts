@@ -45,7 +45,8 @@ export class PrivateChannel {
      * @return {string}
      */
     protected authHost(socket: any): string {
-        return this.options.authHost.substr(0, this.options.authHost.indexOf('://')) + "://" + (socket.request.headers.host.indexOf(':') > 0 ? socket.request.headers.host.substr(0, socket.request.headers.host.indexOf(':')) : socket.request.headers.host);
+        return this.options.authHost.substr(0, this.options.authHost.indexOf('://')) + "://"
+            + (socket.request.headers.host.indexOf(':') > 0 ? socket.request.headers.host.substr(0, socket.request.headers.host.indexOf(':')) : socket.request.headers.host);
     }
 
     /**

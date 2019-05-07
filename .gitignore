@@ -2,3 +2,5 @@ node_modules/
 dist/
 examples/
 npm-debug.log
+.idea
+laravel-echo-server.json
